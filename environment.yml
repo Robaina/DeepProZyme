@@ -10,7 +10,9 @@ dependencies:
   - biopython=1.78
   - diamond==2.0.11
   - matplotlib
+  - pandas
   - pip:
     - tqdm==4.53.0
     - transformers==3.5.1
     - torch==1.7.0
+    - ipykernel

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "deepec"
+version = "0.0.0"
+description = "Prediction of EC numbers for enzyme sequences"
+license = "MIT"
+authors = ["Semidán Robaina Estévez <semidan.robaina@gmail.com>"]
+maintainers = ["Semidán Robaina Estévez <semidan.robaina@gmail.com>"]
+readme = "README.md"
+homepage = ""
+repository = ""
+documentation = ""
+keywords = ["EC", "metabolism", "enzymes", "bioinformatics"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Natural Language :: English",
+]
+packages = [{ include = "deepec", from = "src" }]
+[tool.poetry.dependencies]
+python = "^3.6"
