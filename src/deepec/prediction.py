@@ -4,6 +4,7 @@ import shutil
 import subprocess
 from subprocess import CalledProcessError
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 from typing import List, Dict, Tuple, Any
@@ -60,7 +61,7 @@ def preprocess_sequences(sequences: List[str], max_length: int = 1000) -> List[s
     return processed_sequences
 
 
-def run_network_and_save_results(
+def run_deepec_and_save_results(
     model: torch.nn.Module,
     dataloader: DataLoader,
     threshold: float,
@@ -77,6 +78,7 @@ def run_network_and_save_results(
         threshold: Threshold for prediction.
         device: The device to run the model on.
         output_dir: Directory to save temporary results.
+        input_ids: List of sequence IDs. Defaults to None.
 
     Returns:
         Tuple[Dict, List]: Predictions and list of failed cases.
@@ -86,12 +88,10 @@ def run_network_and_save_results(
 
     if input_ids is None:
         input_ids = [f"Query_{i}" for i in range(len(y_pred))]
-    if not os.path.exists(os.path.join(output_dir, "tmp")):
-        os.makedirs(os.path.join(output_dir, "tmp"))
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-    failed_cases = save_dl_result(
-        y_pred, y_score, input_ids, explainECs, os.path.join(output_dir, "tmp")
-    )
+    failed_cases = save_dl_result(y_pred, y_score, input_ids, explainECs, output_dir)
     return y_pred, failed_cases
 
 
@@ -237,3 +237,137 @@ def merge_and_finalize_predictions(output_dir: str, dl_success: bool) -> None:
         )
     else:
         merge_predictions(dl_pred_file, blast_pred_file, output_dir)
+
+
+def extract_sequences_from_fasta(file_path: str, sanitize: bool = False) -> list:
+    """
+    Parse a FASTA file and extract sequence IDs and protein sequences. Optionally, sanitize the sequences
+    by removing asterisks from the end.
+
+    Args:
+        file_path (str): Path to the FASTA file.
+        sanitize (bool): If True, removes asterisks from the end of sequences. Defaults to False.
+
+    Returns:
+        List[Tuple[str, str]]: A list of tuples, where each tuple contains a sequence ID and its protein sequence.
+    """
+    with open(file_path, "r") as file:
+        sequences = []
+        seq_id = ""
+        seq = ""
+        for line in file:
+            line = line.strip()
+            if line.startswith(">"):
+                if seq_id and seq:
+                    sequences.append((seq_id, seq.rstrip("*") if sanitize else seq))
+                seq_id = line.split()[0][1:]
+                seq = ""
+            else:
+                seq += line
+        if seq_id and seq:
+            sequences.append((seq_id, seq.rstrip("*") if sanitize else seq))
+    return sequences
+
+
+def filter_predictions_by_score(
+    input_file: str, output_file: str, score_threshold: float, merge_ec: bool = False
+) -> None:
+    """
+    Filters rows in a file based on a minimum score threshold and writes the result to another file.
+    Optionally, merges rows with the same sequence ID, presenting EC numbers and scores as comma-separated strings.
+
+    Args:
+        input_file (str): Path to the input file containing the data to be filtered.
+        output_file (str): Path where the filtered (and optionally merged) data will be saved.
+        score_threshold (float): The minimum score threshold. Rows with scores below this threshold will be excluded.
+        merge_ec (bool): If True, merges rows with the same sequence ID. Defaults to False.
+
+    Returns:
+        None: This function writes the result to a file and does not return any value.
+    """
+    # Read the data from the input file
+    data = pd.read_csv(input_file, sep="\t")
+    filtered_data = data[data["score"] >= score_threshold]
+    if merge_ec:
+        filtered_data = (
+            filtered_data.groupby("sequence_ID")
+            .agg(
+                {
+                    "prediction": lambda x: ",".join(x),
+                    "score": lambda x: ",".join(x.astype(str)),
+                }
+            )
+            .reset_index()
+        )
+    filtered_data.to_csv(output_file, sep="\t", index=False)
+
+
+def merge_ec_numbers(input_file: str, output_file: str) -> None:
+    """
+    Merges rows with the same sequence ID such that EC numbers and scores are presented as comma-separated strings.
+
+    Args:
+        input_file (str): Path to the input file containing sequence IDs, predictions (EC numbers), and scores.
+        output_file (str): Path where the merged data will be saved.
+
+    Returns:
+        None: This function writes the result to a file and does not return any value.
+    """
+    data = pd.read_csv(input_file, sep="\t")
+    merged_data = (
+        data.groupby("sequence_ID")
+        .agg(
+            {
+                "prediction": lambda x: ",".join(x),
+                "score": lambda x: ",".join(x.astype(str)),
+            }
+        )
+        .reset_index()
+    )
+    merged_data.to_csv(output_file, sep="\t", index=False)
+
+
+def predict_ec_numbers(
+    fasta_file_path: str,
+    output_dir: str,
+    checkpt_file: str,
+    n_threads: int = 12,
+    batch_size: int = 128,
+    score_threshold: float = None,
+):
+    """
+    Process protein sequences from a FASTA file, predict enzyme activities using a deep learning model,
+    handle failed cases with BLASTP, save the results, and filter predictions by score.
+
+    Args:
+        fasta_file_path (str): Path to the FASTA file with protein sequences.
+        output_dir (str): Directory to save the prediction results.
+        checkpt_file (str): Path to the deep learning model checkpoint file.
+        n_threads (int, optional): Number of threads for model initialization. Defaults to 12.
+        batch_size (int, optional): Batch size for the DataLoader. Defaults to 128.
+        score_threshold (float, optional): Score threshold for filtering predictions.
+    """
+    fasta_sequences = extract_sequences_from_fasta(fasta_file_path, sanitize=True)
+    query_seqs = [seq[1] for seq in fasta_sequences]
+    query_ids = [seq[0] for seq in fasta_sequences]
+    input_seqs = preprocess_sequences(query_seqs, max_length=1000)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = initialize_model(checkpt_file, n_threads=n_threads)
+    model.to(device)
+    threshold = model.thresholds.to(device)
+
+    proteinDataloader, _ = prepare_protein_dataloader(
+        input_seqs, model, batch_size=batch_size, input_ids=query_ids
+    )
+    run_deepec_and_save_results(
+        model, proteinDataloader, threshold, device, output_dir, input_ids=query_ids
+    )
+
+    if score_threshold is not None:
+        filter_predictions_by_score(
+            os.path.join(output_dir, "DL_prediction_result.txt"),
+            os.path.join(output_dir, "DL_prediction_result_filtered.txt"),
+            score_threshold=score_threshold,
+            merge_ec=True,
+        )
