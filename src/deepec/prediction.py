@@ -66,7 +66,7 @@ def run_deepec_and_save_results(
     dataloader: DataLoader,
     threshold: float,
     device: torch.device,
-    output_dir: str,
+    output_file: str,
     input_ids: List[str] = None,
 ) -> Tuple[Dict, List]:
     """
@@ -77,7 +77,7 @@ def run_deepec_and_save_results(
         dataloader: DataLoader for the protein sequences.
         threshold: Threshold for prediction.
         device: The device to run the model on.
-        output_dir: Directory to save temporary results.
+        output_file: Path to save the output file.
         input_ids: List of sequence IDs. Defaults to None.
 
     Returns:
@@ -88,10 +88,7 @@ def run_deepec_and_save_results(
 
     if input_ids is None:
         input_ids = [f"Query_{i}" for i in range(len(y_pred))]
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    failed_cases = save_dl_result(y_pred, y_score, input_ids, explainECs, output_dir)
+    failed_cases = save_dl_result(y_pred, y_score, input_ids, explainECs, output_file)
     return y_pred, failed_cases
 
 
@@ -329,7 +326,7 @@ def merge_ec_numbers(input_file: str, output_file: str) -> None:
 
 def predict_ec_numbers(
     fasta_file_path: str,
-    output_dir: str,
+    output_file: str,
     checkpt_file: str,
     n_threads: int = 12,
     batch_size: int = 128,
@@ -341,7 +338,7 @@ def predict_ec_numbers(
 
     Args:
         fasta_file_path (str): Path to the FASTA file with protein sequences.
-        output_dir (str): Directory to save the prediction results.
+        output_file (str): Path to save the prediction results.
         checkpt_file (str): Path to the deep learning model checkpoint file.
         n_threads (int, optional): Number of threads for model initialization. Defaults to 12.
         batch_size (int, optional): Batch size for the DataLoader. Defaults to 128.
@@ -361,13 +358,13 @@ def predict_ec_numbers(
         input_seqs, model, batch_size=batch_size, input_ids=query_ids
     )
     run_deepec_and_save_results(
-        model, proteinDataloader, threshold, device, output_dir, input_ids=query_ids
+        model, proteinDataloader, threshold, device, output_file, input_ids=query_ids
     )
 
     if score_threshold is not None:
         filter_predictions_by_score(
-            os.path.join(output_dir, "DL_prediction_result.txt"),
-            os.path.join(output_dir, "DL_prediction_result_filtered.txt"),
+            output_file,
+            output_file,
             score_threshold=score_threshold,
             merge_ec=True,
         )

@@ -210,9 +210,11 @@ def run_neural_net(model, proteinDataloader, pred_thrd, device):
     return y_pred, y_score
 
 
-def save_dl_result(y_pred, y_score, input_ids, explainECs, output_dir):
+def save_dl_result(y_pred, y_score, input_ids, explainECs, output_file: str = None):
+    if output_file is None:
+        output_file = "DL_prediction_result.txt"
     failed_cases = []
-    with open(f"{output_dir}/DL_prediction_result.txt", "w") as fp:
+    with open(f"{output_file}", "w") as fp:
         fp.write("sequence_ID\tprediction\tscore\n")
         for i, ith_pred in enumerate(y_pred):
             nonzero_preds = torch.nonzero(ith_pred, as_tuple=False)
