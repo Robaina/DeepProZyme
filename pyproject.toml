@@ -21,5 +21,6 @@ classifiers = [
     "Natural Language :: English",
 ]
 packages = [{ include = "deepec", from = "src" }]
+include = ["model/model.pth"]
 [tool.poetry.dependencies]
 python = "^3.6"

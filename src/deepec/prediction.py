@@ -14,16 +14,18 @@ from .utils import run_neural_net, save_dl_result
 from .homology import read_best_blast_result, merge_predictions
 
 
-def initialize_model(model_path: str, n_threads: int = 2) -> torch.nn.Module:
+def initialize_model(model_path: str = None, n_threads: int = 2) -> torch.nn.Module:
     """
     Initialize and load the BERT model for protein sequence analysis.
 
     Args:
-        model_path (str): The file path to the pre-trained model.
+        model_path (str): The file path to the pre-trained model. If None, the default model is used.
 
     Returns:
         torch.nn.Module: The loaded PyTorch model.
     """
+    if model_path is None:
+        model_path = os.path.join(os.path.dirname(__file__), "model", "model.pth")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     torch.set_num_threads(n_threads)
     model = torch.load(model_path, map_location=device)
@@ -327,7 +329,7 @@ def merge_ec_numbers(input_file: str, output_file: str) -> None:
 def predict_ec_numbers(
     fasta_file_path: str,
     output_file: str,
-    checkpt_file: str,
+    deepec_checkpt_file: str = None,
     n_threads: int = 12,
     batch_size: int = 128,
     score_threshold: float = None,
@@ -339,7 +341,7 @@ def predict_ec_numbers(
     Args:
         fasta_file_path (str): Path to the FASTA file with protein sequences.
         output_file (str): Path to save the prediction results.
-        checkpt_file (str): Path to the deep learning model checkpoint file.
+        checkpt_file (str): Path to the deep learning model checkpoint file. If None (default), the default model is used.
         n_threads (int, optional): Number of threads for model initialization. Defaults to 12.
         batch_size (int, optional): Batch size for the DataLoader. Defaults to 128.
         score_threshold (float, optional): Score threshold for filtering predictions.
@@ -350,7 +352,7 @@ def predict_ec_numbers(
     input_seqs = preprocess_sequences(query_seqs, max_length=1000)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = initialize_model(checkpt_file, n_threads=n_threads)
+    model = initialize_model(model_path=deepec_checkpt_file, n_threads=n_threads)
     model.to(device)
     threshold = model.thresholds.to(device)
 
