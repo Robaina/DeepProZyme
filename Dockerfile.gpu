@@ -20,7 +20,7 @@ RUN pip install torch==1.7.0+cu110 torchvision==0.8.1+cu110 -f https://download.
 # Copy source code and essential files
 COPY src/ ./src/
 COPY model/ ./model/
-COPY run_deepectransformer.py ./
+COPY src/run_deepectransformer.py ./
 COPY pyproject.toml ./
 
 # Build the deepec package and install it

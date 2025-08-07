@@ -17,7 +17,7 @@ SHELL ["micromamba", "run", "-n", "deepec", "/bin/bash", "-c"]
 # Copy source code and essential files
 COPY src/ ./src/
 COPY model/ ./model/
-COPY run_deepectransformer.py ./
+COPY src/run_deepectransformer.py ./
 COPY pyproject.toml ./
 
 # Build the deepec package and install it
