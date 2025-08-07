@@ -61,6 +61,28 @@ DeepProZyme is a tool for predicting enzyme commission (EC) numbers from protein
     ```
 
 
+## 🧪 Testing
+
+A comprehensive test suite is available to verify the tool's functionality:
+
+```bash
+python tests/test_deepec.py
+```
+
+The test includes:
+- **Execution Test**: Verifies that DeepEC runs successfully with the provided parameters
+- **Output Format Validation**: Checks that the result file contains the correct columns and structure
+- **Consistency Test**: Compares new results against existing expected results
+
+### Test Data
+Test data is located in `tests/data/TARA_ARC_108_MAG_00080.fasta` and expected results in `tests/results/DeepECv2_result.txt`.
+
+### Test Features
+- Automatic timeout protection (30 minutes)
+- Detailed error reporting
+- Output format validation
+- Sequence consistency checking
+
 ## 🐳 Docker
 
 

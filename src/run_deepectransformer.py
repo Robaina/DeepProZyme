@@ -96,7 +96,7 @@ if __name__ == '__main__':
                     dl_data[seq_id] = []
                 dl_data[seq_id].append((ec, float(score), method))
 
-        with open(f"{output_dir}/DeepECv2_result.txt", "w") as fp:
+        with open(f"{output_dir}/DeepECv2_result.tsv", "w") as fp:
             fp.write("sequence_ID\tec_numbers\tdeepec_ecs\tdeepec_scores\tblastp_ecs\tblastp_scores\n")
             
             for seq_id in sorted(dl_data.keys()):
