@@ -2,7 +2,7 @@ import re
 import torch
 import numpy as np
 from torch.utils.data import Dataset
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, BertTokenizer
 
 
 class DeepECDataset(Dataset):
@@ -17,7 +17,7 @@ class DeepECDataset(Dataset):
     ):
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_name, do_lower_case=False
-        )
+            )
         self.max_length = max_length
         self.data_X = data_X
         self.data_Y = data_Y

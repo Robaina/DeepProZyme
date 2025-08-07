@@ -1,0 +1,45 @@
+FROM mambaorg/micromamba:latest
+
+USER root
+
+# Set working directory
+WORKDIR /app
+
+# Copy environment file
+COPY envs/environment.yml .
+
+# Create conda environment
+RUN micromamba env create -f environment.yml
+
+# Make RUN commands use the new environment
+SHELL ["micromamba", "run", "-n", "deepec", "/bin/bash", "-c"]
+
+# Install CUDA-enabled PyTorch (override the CPU version from environment.yml)
+RUN pip install torch==1.7.0+cu110 torchvision==0.8.1+cu110 -f https://download.pytorch.org/whl/torch_stable.html
+
+# Copy source code and essential files
+COPY src/ ./src/
+COPY model/ ./model/
+COPY run_deepectransformer.py ./
+COPY pyproject.toml ./
+
+# Build the deepec package and install it
+RUN poetry build && \
+    pip install dist/*.whl
+
+# Create results directory
+RUN mkdir -p /app/results
+
+# Set environment variables to ensure conda environment is activated
+ENV CONDA_DEFAULT_ENV=deepec
+ENV PATH=/opt/conda/envs/deepec/bin:$PATH
+
+# Set NVIDIA environment variables for GPU support
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Set the entrypoint
+ENTRYPOINT ["micromamba", "run", "-n", "deepec", "python", "run_deepectransformer.py"]
+
+# Default arguments (can be overridden at runtime) - using GPU by default
+CMD ["-o", "/app/results", "-b", "128", "-g", "gpu", "-cpu", "10"]

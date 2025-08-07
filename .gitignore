@@ -18,3 +18,4 @@ logs/
 prot_bert_*
 analyze/*
 results/
+protbert_bfd/

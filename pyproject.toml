@@ -9,10 +9,9 @@ description = "Prediction of EC numbers for enzyme sequences"
 license = "MIT"
 authors = ["Semidán Robaina Estévez <semidan.robaina@gmail.com>"]
 maintainers = ["Semidán Robaina Estévez <semidan.robaina@gmail.com>"]
-readme = "README.md"
-homepage = ""
-repository = ""
-documentation = ""
+homepage = "https://github.com/Robaina/DeepProZyme"
+repository = "https://github.com/Robaina/DeepProZyme"
+documentation = "https://github.com/Robaina/DeepProZyme"
 keywords = ["EC", "metabolism", "enzymes", "bioinformatics"]
 classifiers = [
     "License :: OSI Approved :: MIT License",

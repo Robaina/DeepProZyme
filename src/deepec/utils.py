@@ -93,6 +93,14 @@ def argument_parser(version=None):
         default=False,
         help="Predict upto third EC level",
     )
+    parser.add_argument(
+        "-t",
+        "--tokenizer",
+        required=False,
+        type=str,
+        default="Rostlab/prot_bert_bfd",
+        help="Name or path to tokenizer model",
+    )
     return parser
 
 
@@ -215,15 +223,14 @@ def save_dl_result(y_pred, y_score, input_ids, explainECs, output_file: str = No
         output_file = "DL_prediction_result.txt"
     failed_cases = []
     with open(f"{output_file}", "w") as fp:
-        fp.write("sequence_ID\tprediction\tscore\n")
+        fp.write("sequence_ID\tec_number\tscore\tmethod\n")
         for i, ith_pred in enumerate(y_pred):
             nonzero_preds = torch.nonzero(ith_pred, as_tuple=False)
             if len(nonzero_preds) == 0:
-                fp.write(f"{input_ids[i]}\tNone\t0.0\n")
                 failed_cases.append(input_ids[i])
                 continue
             for j in nonzero_preds:
                 pred_ec = explainECs[j]
                 pred_score = y_score[i][j].item()
-                fp.write(f"{input_ids[i]}\t{pred_ec}\t{pred_score:0.4f}\n")
+                fp.write(f"{input_ids[i]}\t{pred_ec}\t{pred_score:0.4f}\tdeepec\n")
     return failed_cases
